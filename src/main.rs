@@ -1,3 +1,13 @@
+use bevy::prelude::*;
+
+mod camera_controls;
+use camera_controls::CameraControlsPlugin;
+
 fn main() {
-    println!("Hello, world!");
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(CameraControlsPlugin)
+        .run();
 }
+
+
