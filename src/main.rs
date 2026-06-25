@@ -1,4 +1,9 @@
-use bevy::prelude::*;
+use std::f32::consts::PI;
+
+use bevy::{
+    light::CascadeShadowConfigBuilder,
+    prelude::*,
+};
 
 mod camera_controls;
 use camera_controls::CameraControlsPlugin;
@@ -30,13 +35,19 @@ fn create_objects(
         Transform::from_xyz(1., 0.5, 0.),
     ));
 
-    // light
+    // directional 'sun' light
     commands.spawn((
         DirectionalLight {
+            illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
             shadow_maps_enabled: true,
-            ..Default::default()
+            ..default()
         },
-        Transform::from_translation(Vec3::ONE).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform {
+            translation: Vec3::new(100.0, 60.0, 100.0),
+            ..default()
+        }.looking_at(Vec3::ZERO, Vec3::Y),
     ));
+
+
 
 }
