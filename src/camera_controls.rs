@@ -25,7 +25,7 @@ fn controls(
     input: Res<ButtonInput<KeyCode>>,
     time: Res<Time<Fixed>>,
 ) {
-    let (mut camera, mut transform, mut projection) = camera_query.into_inner();
+    let (_, mut transform, _) = camera_query.into_inner();
 
     let cam_speed = 1.5 * time.delta_secs();
 

@@ -1,7 +1,4 @@
-use std::f32::consts::PI;
-
 use bevy::{
-    light::CascadeShadowConfigBuilder,
     prelude::*,
 };
 
