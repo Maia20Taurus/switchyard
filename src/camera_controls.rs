@@ -14,7 +14,7 @@ fn add_camera(mut commands: Commands) {
             },
             ..OrthographicProjection::default_3d()
         }),
-        Transform::from_xyz(2.0, 10.0, 40.0)
+        Transform::from_xyz(0.0, 10.0, 40.0)
         .looking_at(Vec3::ZERO, Vec3::Y),
         PrimaryCamera,
     ));
