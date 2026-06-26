@@ -3,12 +3,15 @@ use bevy::{
 };
 
 mod camera_controls;
+mod rail_placement;
 use camera_controls::CameraControlsPlugin;
+use rail_placement::RailPlacementPlugin;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(CameraControlsPlugin)
+        .add_plugins(RailPlacementPlugin)
         .add_systems(Startup, create_objects)
         .run();
 }
