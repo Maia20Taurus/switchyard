@@ -1,4 +1,4 @@
-use bevy::{mesh::{PrimitiveTopology, Indices}, asset::RenderAssetUsages, prelude::*};
+use bevy::{asset::RenderAssetUsages, mesh::{Indices, PrimitiveTopology}, prelude::*, render::render_asset::RenderAsset};
 
 pub struct RailPlacementPlugin;
 impl Plugin for RailPlacementPlugin {
@@ -8,22 +8,14 @@ impl Plugin for RailPlacementPlugin {
     }
 }
 
-/// The algorithm that the rail generator uses to produce the rail mesh
-pub enum CurveMode {
-    Linear,
-    Quadratic,
-    Cubic,
-}
-
 #[derive(Component)]
 pub struct Rail {
     starting_point: Transform,
     ending_point: Transform,
-    curve_mode: CurveMode,
 }
 
 /// Creates the four end points of a rail based on the given transform
-fn create_rail_end_points(transform: &Transform) -> Vec<Vec3> {
+fn create_rail_end_vertices(transform: &Transform) -> Vec<Vec3> {
     let rail_width: f32 = 0.25;
     let rail_height: f32 = 0.5;
 
@@ -34,9 +26,10 @@ fn create_rail_end_points(transform: &Transform) -> Vec<Vec3> {
     vec![lower_left, lower_right, upper_left, upper_right]
 }
 
+/// Create a mesh for a rail segment between two transforms
 fn create_rail_segment_mesh(starting_transform: &Transform, ending_transform: &Transform) -> Mesh {
-    let mut starting_points = create_rail_end_points(&starting_transform);
-    let mut ending_points = create_rail_end_points(&ending_transform);
+    let mut starting_points = create_rail_end_vertices(&starting_transform);
+    let mut ending_points = create_rail_end_vertices(&ending_transform);
     starting_points.append(&mut ending_points);
     starting_points.append(&mut vec![
         starting_points[2].clone(),
@@ -81,30 +74,48 @@ fn create_rail_segment_mesh(starting_transform: &Transform, ending_transform: &T
             // -X
             4, 2, 0, 4, 6, 2,
             // +X
-            1, 5, 3, 3, 5, 7,
+            3, 5, 1, 7, 5, 3,
             // +Y
             9, 8, 10, 9, 10, 11,
         ]));
         segment
 }
 
-fn create_rail_mesh(rail: &Rail) -> Vec<Vec3> {
-    let control_point_offset: Vec3 = Vec3::Z;
+/// Create a rail made of rail segments between the starting and ending points of the given rail
+/// Uses a cubic bezier curve
+fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
+    let samples = 25;
+    let control_point_offset: Vec3 = Vec3::new(0., 0., 20.);
 
-    let inner_starting_point: Vec3 = rail.starting_point.rotation.mul_vec3(control_point_offset)
-    + rail.starting_point.translation;
-    let inner_ending_point: Vec3 = rail.ending_point.rotation.mul_vec3(control_point_offset)
-    + rail.ending_point.translation;
+    let inner_starting_point: Vec3 = rail.starting_point.transform_point(control_point_offset);
+    let inner_ending_point: Vec3 = rail.ending_point.transform_point(control_point_offset);
 
-    let points: [[Vec3; 4]; 1]  = [[
+    let control_points: [[Vec3; 4]; 1]  = [[
         rail.starting_point.translation,
         inner_starting_point,
         inner_ending_point,
         rail.ending_point.translation,
     ]];
-    let cubic_bezier = CubicBezier::new(points).to_curve().unwrap();
-    let interpoints: Vec<Vec3> = cubic_bezier.iter_positions(25).collect();
-    interpoints
+    let cubic_bezier = CubicBezier::new(control_points).to_curve().unwrap();
+    let inter_positions: Vec<Vec3> = cubic_bezier.iter_positions(samples).collect();
+    let inter_velocities: Vec<Vec3> = cubic_bezier.iter_velocities(samples).collect();
+    let inter_transforms: Vec<Transform> = inter_positions.iter().zip(inter_velocities.iter()).map(|(pos, vel)| {
+        let rotation = Quat::from_rotation_arc(Vec3::Z, (*vel).normalize());
+        Transform {
+            translation: *pos,
+            rotation,
+            ..default()
+        }
+    }).collect();
+
+    let mut segment_meshes: Vec<Mesh> = Vec::new();
+    for n in 0..(inter_transforms.len() - 2) {
+        let start_transform: Transform = inter_transforms[n];
+        let end_transform: Transform = inter_transforms[n + 1];
+        segment_meshes.push(create_rail_segment_mesh(&start_transform, &end_transform));
+    }
+    
+    segment_meshes
 }
 
 fn controls(
@@ -120,25 +131,18 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let rail = Rail {
-        starting_point: Transform::from_xyz(-3., 0., -4.5),
-        ending_point: Transform::from_xyz(2.5, 0., 3.5),
-        curve_mode: CurveMode::Cubic,
+        starting_point: Transform::from_xyz(10., 0., -7.).looking_to(Vec3::new(0.,0.,-1.), Vec3::Y),
+        ending_point: Transform::from_xyz(0., 0., 15.).looking_to(Vec3::new(0.,0.,1.), Vec3::Y),
     };
-    let interpoints = create_rail_mesh(&rail);
-    for point in interpoints {
+    let rail_section = create_rail_mesh(&rail);
+    for section in rail_section {
+        let rail_segment_handle: Handle<Mesh> = meshes.add(section);
         commands.spawn((
-        Mesh3d(meshes.add(Cuboid{half_size: Vec3::new(0.1, 0.1, 0.1), ..default()}.mesh())),
-        MeshMaterial3d(materials.add(Color::srgb(0.5, 0.3, 0.3))),
-        Transform::from_translation(point)
-    ));
+            Mesh3d(rail_segment_handle),
+            MeshMaterial3d(materials.add(Color::srgb(0.3, 0.3, 0.3))),
+            Transform::from_xyz(0., 0., 0.)
+        ));
     }
 
-     let rail_segment_handle: Handle<Mesh> = meshes.add(create_rail_segment_mesh(
-        &rail.starting_point, &rail.ending_point
-    ));
-    commands.spawn((
-        Mesh3d(rail_segment_handle),
-        MeshMaterial3d(materials.add(Color::srgb(0.5, 0.3, 0.3))),
-        Transform::from_xyz(1., 0.5, 0.),
-    ));
+    
 }
