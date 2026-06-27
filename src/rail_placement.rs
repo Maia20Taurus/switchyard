@@ -38,16 +38,26 @@ fn create_rail_segment_mesh(starting_transform: &Transform, ending_transform: &T
     let mut starting_points = create_rail_end_points(&starting_transform);
     let mut ending_points = create_rail_end_points(&ending_transform);
     starting_points.append(&mut ending_points);
+    starting_points.append(&mut vec![
+        starting_points[2].clone(),
+        starting_points[3].clone(),
+        starting_points[6].clone(),
+        starting_points[7].clone(),
+    ]);
 
     let segment = Mesh::new(PrimitiveTopology::TriangleList,
         RenderAssetUsages::default()
     )
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, starting_points)
         .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, vec![
-            Vec3::NEG_Y,
-            Vec3::NEG_Y,
-            Vec3::NEG_Y,
-            Vec3::NEG_Y,
+            Vec3::new(-1.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(-1.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(-1.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(-1.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
             Vec3::Y,
             Vec3::Y,
             Vec3::Y,
@@ -62,16 +72,18 @@ fn create_rail_segment_mesh(starting_transform: &Transform, ending_transform: &T
             Vec2::new(1.0, 0.0),
             Vec2::new(0.0, 1.0),
             Vec2::new(1.0, 1.0),
+            Vec2::new(0.0, 0.0),
+            Vec2::new(1.0, 0.0),
+            Vec2::new(0.0, 1.0),
+            Vec2::new(1.0, 1.0),
         ])
         .with_inserted_indices(Indices::U32(vec![
-            //0,1,2, 1,3,2,
-            //4,5,6, 5,7,6,
             // -X
             4, 2, 0, 4, 6, 2,
             // +X
             1, 5, 3, 3, 5, 7,
             // +Y
-            6, 3, 2, 6, 7, 3,
+            9, 8, 10, 9, 10, 11,
         ]));
         segment
 }
