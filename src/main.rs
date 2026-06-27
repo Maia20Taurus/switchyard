@@ -24,7 +24,7 @@ fn create_objects(
 ) {
     // plane
     commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(5., 5.))),
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(50., 50.))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
     ));
 
@@ -32,7 +32,7 @@ fn create_objects(
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::default().mesh())),
         MeshMaterial3d(materials.add(Color::srgb(0.5, 0.3, 0.3))),
-        Transform::from_xyz(1., 0.5, 0.),
+        Transform::from_xyz(3., 0.5, 0.),
     ));
 
     // directional 'sun' light
@@ -43,7 +43,7 @@ fn create_objects(
             ..default()
         },
         Transform {
-            translation: Vec3::new(100.0, 60.0, 100.0),
+            translation: Vec3::new(150.0, 200.0, 150.0),
             ..default()
         }.looking_at(Vec3::ZERO, Vec3::Y),
     ));

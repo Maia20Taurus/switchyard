@@ -10,11 +10,11 @@ fn add_camera(mut commands: Commands) {
         Camera3d::default(),
         Projection::from(OrthographicProjection {
             scaling_mode: ScalingMode::FixedVertical {
-                viewport_height: 6.0,
+                viewport_height: 15.0,
             },
             ..OrthographicProjection::default_3d()
         }),
-        Transform::from_xyz(0.0, 10.0, 40.0)
+        Transform::from_xyz(0.0, 15.0, 30.0)
         .looking_at(Vec3::ZERO, Vec3::Y),
         PrimaryCamera,
     ));
