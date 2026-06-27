@@ -84,7 +84,7 @@ fn create_rail_segment_mesh(starting_transform: &Transform, ending_transform: &T
 /// Create a rail made of rail segments between the starting and ending points of the given rail
 /// Uses a cubic bezier curve
 fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
-    let samples = 25;
+    let samples = 100;
     let control_point_offset: Vec3 = Vec3::new(0., 0., 20.);
 
     let inner_starting_point: Vec3 = rail.starting_point.transform_point(control_point_offset);
@@ -99,7 +99,7 @@ fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
     let cubic_bezier = CubicBezier::new(control_points).to_curve().unwrap();
     let inter_positions: Vec<Vec3> = cubic_bezier.iter_positions(samples).collect();
     let inter_velocities: Vec<Vec3> = cubic_bezier.iter_velocities(samples).collect();
-    let inter_transforms: Vec<Transform> = inter_positions.iter().zip(inter_velocities.iter()).map(|(pos, vel)| {
+    let mut inter_transforms: Vec<Transform> = inter_positions.iter().zip(inter_velocities.iter()).map(|(pos, vel)| {
         let rotation = Quat::from_rotation_arc(Vec3::Z, (*vel).normalize());
         Transform {
             translation: *pos,
@@ -107,6 +107,13 @@ fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
             ..default()
         }
     }).collect();
+    // Set the start and end to the originally specified Rail to ensure that this mesh aligns with those ends
+    inter_transforms[0] = rail.starting_point.clone();
+
+    // Every rail end needs to face the same direction to generate the mesh properly
+    let mut end_clone = rail.ending_point.clone();
+    end_clone.rotation = rail.ending_point.rotation.conjugate();
+    inter_transforms.push(end_clone);
 
     let mut segment_meshes: Vec<Mesh> = Vec::new();
     for n in 0..(inter_transforms.len() - 2) {
@@ -116,13 +123,6 @@ fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
     }
     
     segment_meshes
-}
-
-fn controls(
-    input: Res<ButtonInput<KeyCode>>,
-    time: Res<Time<Fixed>>,
-) {
-
 }
 
 fn setup(
