@@ -3,7 +3,6 @@ use bevy::{asset::RenderAssetUsages, mesh::{Indices, PrimitiveTopology}, prelude
 pub struct RailPlacementPlugin;
 impl Plugin for RailPlacementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, controls);
         app.add_systems(Startup, setup);
     }
 }
