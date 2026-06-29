@@ -1,4 +1,4 @@
-use bevy::{asset::RenderAssetUsages, mesh::{Indices, PrimitiveTopology}, prelude::*, render::render_asset::RenderAsset};
+use bevy::{asset::RenderAssetUsages, mesh::{Indices, PrimitiveTopology}, prelude::*};
 
 pub struct RailPlacementPlugin;
 impl Plugin for RailPlacementPlugin {
