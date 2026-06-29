@@ -4,11 +4,23 @@ use bevy::{
 
 mod camera_controls;
 mod rail_placement;
+mod construction;
 use camera_controls::CameraControlsPlugin;
 use rail_placement::RailPlacementPlugin;
+use construction::UserConstructionPlugin;
+
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GameModeState {
+    Exploring,
+    Constructing,
+    Paused,
+}
 
 fn main() {
     App::new()
+        // States
+        .insert_state(GameModeState::Exploring)
+        // Plugins
         .add_plugins(DefaultPlugins)
         .add_plugins(CameraControlsPlugin)
         .add_plugins(RailPlacementPlugin)
