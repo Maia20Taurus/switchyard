@@ -98,7 +98,10 @@ fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
     let cubic_bezier = CubicBezier::new(control_points).to_curve().unwrap();
     let inter_positions: Vec<Vec3> = cubic_bezier.iter_positions(samples).collect();
     let inter_velocities: Vec<Vec3> = cubic_bezier.iter_velocities(samples).collect();
-    let mut inter_transforms: Vec<Transform> = inter_positions.iter().zip(inter_velocities.iter()).map(|(pos, vel)| {
+    let mut inter_transforms: Vec<Transform> = inter_positions
+    .iter()
+    .zip(inter_velocities.iter())
+    .map(|(pos, vel)| {
         let rotation = Quat::from_rotation_arc(Vec3::Z, (*vel).normalize());
         Transform {
             translation: *pos,
