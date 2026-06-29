@@ -15,13 +15,13 @@ pub struct Rail {
 
 /// Creates the four end points of a rail based on the given transform
 fn create_rail_end_vertices(transform: &Transform) -> Vec<Vec3> {
-    let rail_width: f32 = 0.25;
-    let rail_height: f32 = 0.5;
+    const RAIL_WIDTH: f32 = 0.1;
+    const RAIL_HEIGHT: f32 = 0.15;
 
-    let lower_left: Vec3 = transform.transform_point(Vec3::new(-rail_width, -rail_height, 0.0));
-    let lower_right: Vec3 = transform.transform_point(Vec3::new(rail_width, -rail_height, 0.0));
-    let upper_left: Vec3 = transform.transform_point(Vec3::new(-rail_width, rail_height, 0.0));
-    let upper_right: Vec3 = transform.transform_point(Vec3::new(rail_width, rail_height, 0.0));
+    let lower_left: Vec3 = transform.transform_point(Vec3::new(-RAIL_WIDTH, -RAIL_HEIGHT, 0.0));
+    let lower_right: Vec3 = transform.transform_point(Vec3::new(RAIL_WIDTH, -RAIL_HEIGHT, 0.0));
+    let upper_left: Vec3 = transform.transform_point(Vec3::new(-RAIL_WIDTH, RAIL_HEIGHT, 0.0));
+    let upper_right: Vec3 = transform.transform_point(Vec3::new(RAIL_WIDTH, RAIL_HEIGHT, 0.0));
     vec![lower_left, lower_right, upper_left, upper_right]
 }
 
@@ -83,7 +83,10 @@ fn create_rail_segment_mesh(starting_transform: &Transform, ending_transform: &T
 /// Create a rail made of rail segments between the starting and ending points of the given rail
 /// Uses a cubic bezier curve
 fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
-    let samples = 100;
+    const RAIL_STANDARD_GAUGE: f32 = 1.435;
+    const SAMPLES: usize = 30;
+    // This value is temporary as ultimately the player will be able to manipulate the control points
+    // using drag handles; this is here as a placeholder
     let control_point_offset: Vec3 = Vec3::new(0., 0., 20.);
 
     let inner_starting_point: Vec3 = rail.starting_point.transform_point(control_point_offset);
@@ -96,8 +99,8 @@ fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
         rail.ending_point.translation,
     ]];
     let cubic_bezier = CubicBezier::new(control_points).to_curve().unwrap();
-    let inter_positions: Vec<Vec3> = cubic_bezier.iter_positions(samples).collect();
-    let inter_velocities: Vec<Vec3> = cubic_bezier.iter_velocities(samples).collect();
+    let inter_positions: Vec<Vec3> = cubic_bezier.iter_positions(SAMPLES).collect();
+    let inter_velocities: Vec<Vec3> = cubic_bezier.iter_velocities(SAMPLES).collect();
     let mut inter_transforms: Vec<Transform> = inter_positions
     .iter()
     .zip(inter_velocities.iter())
@@ -113,15 +116,46 @@ fn create_rail_mesh(rail: &Rail) -> Vec<Mesh> {
     inter_transforms[0] = rail.starting_point.clone();
 
     // Every rail end needs to face the same direction to generate the mesh properly
-    let mut end_clone = rail.ending_point.clone();
-    end_clone.rotation = rail.ending_point.rotation.conjugate();
-    inter_transforms.push(end_clone);
+    let last_point = inter_transforms.last_mut().unwrap();
+    *last_point = rail.ending_point.clone();
+    last_point.rotate_local_y(std::f32::consts::PI);
 
+    let tangential_offset = Vec3::new(RAIL_STANDARD_GAUGE / 2.0, 0., 0.);
     let mut segment_meshes: Vec<Mesh> = Vec::new();
-    for n in 0..(inter_transforms.len() - 2) {
-        let start_transform: Transform = inter_transforms[n];
-        let end_transform: Transform = inter_transforms[n + 1];
-        segment_meshes.push(create_rail_segment_mesh(&start_transform, &end_transform));
+    for window in inter_transforms.windows(2) {
+
+        let start_transform: Transform = window[0];
+        let end_transform: Transform = window[1];
+
+        let start_tangent = start_transform.rotation * tangential_offset;
+        let end_tangent = end_transform.rotation * tangential_offset;
+
+        // Right track
+        segment_meshes.push(create_rail_segment_mesh(
+            &Transform {
+                translation: start_transform.translation + start_tangent,
+                rotation: start_transform.rotation,
+                ..default()
+            }, 
+            &Transform {
+                translation: end_transform.translation + end_tangent,
+                rotation: end_transform.rotation,
+                ..default()
+            }
+        ));
+        // Left track
+        segment_meshes.push(create_rail_segment_mesh(
+            &Transform {
+                translation: start_transform.translation - start_tangent,
+                rotation: start_transform.rotation,
+                ..default()
+            }, 
+            &Transform {
+                translation: end_transform.translation - end_tangent,
+                rotation: end_transform.rotation,
+                ..default()
+            }
+        ));
     }
     
     segment_meshes
@@ -133,8 +167,8 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let rail = Rail {
-        starting_point: Transform::from_xyz(10., 0., -7.).looking_to(Vec3::new(0.,0.,-1.), Vec3::Y),
-        ending_point: Transform::from_xyz(0., 0., 15.).looking_to(Vec3::new(0.,0.,1.), Vec3::Y),
+        starting_point: Transform::from_xyz(10., 0., -7.).looking_to(Vec3::new(1.,0.,0.), Vec3::Y),
+        ending_point: Transform::from_xyz(-10., 0., 15.).looking_to(Vec3::new(0.,0.,1.), Vec3::Y),
     };
     let rail_section = create_rail_mesh(&rail);
     for section in rail_section {
